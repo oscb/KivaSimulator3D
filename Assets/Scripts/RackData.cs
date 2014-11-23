@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class RackInit : MonoBehaviour {
+public class RackData : MonoBehaviour {
 
 	public GameObject[] rackMeshes;
+	public bool selected = false;
 	
 	void Start () {
 		GameObject rack = rackMeshes [Random.Range (0, rackMeshes.Length)];

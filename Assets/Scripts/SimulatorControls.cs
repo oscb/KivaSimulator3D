@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
+using System.Linq;
+
 
 public class SimulatorControls : MonoBehaviour {
 	
@@ -7,18 +10,21 @@ public class SimulatorControls : MonoBehaviour {
 	private int marginSize = 10;
 	private int toolbarHeight = 100;
 	private string[] states = new string[] {"►", "II"};
-	private string[] tileTypes = new string[] {"Empty", "Block", "Packager", "Rack", "Kiva"};
-	private int state = 1; // Pause initially
+	private string[] tileTypes;
+	static private int state = 1; // Pause initially
 	private int selectedType = 0;
+	// Components
+	private TileCreator tc;
+	private RoutePlanner rp;
 
 	public float maxRows = 20.0f;
 	public float maxCols = 20.0f;
 //	public float nKivas = 1.0f;
 	public float nRows = 4.0f;
 	public float nCols = 4.0f;
-	public int currentState = 1;
+	static public int currentState = 1;
 
-
+	
 	private GameObject FindParentWithTag(GameObject go, string tag) {
 		if (go.tag == tag) {
 			return go;
@@ -29,17 +35,8 @@ public class SimulatorControls : MonoBehaviour {
 		return null;
 	}
 
-	private void Play () {
-		// Play pressed
-		Debug.Log ("Play");
-	}
-
-	private void Stop () {
-		Debug.Log ("Stop");
-	}
-
 	// GUI Controls
-	void OnGUI () {
+	private void OnGUI () {
 		GUIStyle labelStyle = GUI.skin.GetStyle ("Label");
 		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
 		GUIStyle buttonStyle = GUI.skin.GetStyle ("Button");
@@ -116,25 +113,40 @@ public class SimulatorControls : MonoBehaviour {
 			
 		}
 	}
-	
-	void Start () {
-		currentState = state;
+
+	private void Play () {
+		// Play pressed
+		Debug.Log ("Play");
+		GameObject[,] tiles = tc.GetTiles ();
+		rp.InitMatrix (tiles);
 	}
 	
-	void Update () {
-		
-		
+	private void Start () {
+		var values = Enum.GetValues (typeof(TileData.TileType));
+		this.tileTypes = values.OfType<object>().Select(o => o.ToString()).ToArray();
+		currentState = state;
+		tc = this.gameObject.GetComponent<TileCreator> ();
+		rp = this.gameObject.GetComponent<RoutePlanner> ();
+	}
+
+	private void Stop () {
+		Debug.Log ("Stop");
+	}
+	
+	private void Update () {
 		// Check if a tile is selected
-		if (Input.GetMouseButtonDown (0)) {
+		if (Input.GetMouseButtonDown (0) && currentState != 0 && GUIUtility.hotControl == 0) {
 			RaycastHit hit = new RaycastHit();
 			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 			if (Physics.Raycast(ray, out hit)) {
 				GameObject selectedTile = FindParentWithTag(hit.collider.gameObject, "Tiles");
+				if (selectedTile == null) selectedTile = FindParentWithTag(hit.collider.gameObject, "TileRack");
+				if (selectedTile == null) selectedTile = FindParentWithTag(hit.collider.gameObject, "TilePackager");
 				if (selectedTile != null) {
-					// Change Tile Type
+					// Change Tile Type	
 					Vector3 coordinates = selectedTile.transform.position;
 					// TODO: Not a good idea to use x, z as the coordinates for the array if 3D sizes change
-					this.gameObject.GetComponent<TileCreator>().changeTile((int)coordinates.x, 
+					this.gameObject.GetComponent<TileCreator>().ChangeTile((int)coordinates.x, 
 					                                                       (int)coordinates.z, 
 					                                                       selectedType);
 				}
@@ -142,5 +154,9 @@ public class SimulatorControls : MonoBehaviour {
 			}
 		}
 		
+	}
+
+	static public int GetState() {
+		return state;
 	}
 }

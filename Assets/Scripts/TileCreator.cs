@@ -14,23 +14,20 @@ public class TileCreator : MonoBehaviour {
 	public GameObject emptyTile;
 	public Vector3 camInitialPos;
 
-	
-	void Start () {
-		settings = this.gameObject.GetComponent <SimulatorControls>();
-		this.rows = (int) settings.nRows;
-		this.cols = (int) settings.nCols;
-		GenerateTiles ();
+	public void ChangeTile(int x, int y, int type) {
+		Vector3 pos = this.tiles [x, y].transform.position;
+		Destroy (this.tiles [x, y]);
+		this.tiles [x, y] = (GameObject)GameObject.Instantiate (this.tileTypes [type]);
+		this.tiles [x, y].transform.position = pos;
+		this.tiles [x, y].transform.parent = floor.transform;
+		// TODO: Check that there's only one packager and max 3 kivas
 	}
 
-	void Update () {
-		if ((int)settings.nCols != this.cols || (int)settings.nRows != this.rows) {
-			this.rows = (int) settings.nRows;
-			this.cols = (int) settings.nCols;
-			GenerateTiles ();
-		}
+	public GameObject[,] GetTiles() {
+		return this.tiles;
 	}
 
-	void GenerateTiles() {
+	private void GenerateTiles() {
 		if (tiles != null) {
 			foreach (var item in tiles) {
 				Destroy (item);
@@ -47,20 +44,26 @@ public class TileCreator : MonoBehaviour {
 		PlaceCam ();
 	}
 
-	void PlaceCam() {
-		this.gameObject.transform.position = Vector3.Lerp(camInitialPos, 
-		                                                  new Vector3(this.rows-1, camInitialPos.y, this.cols-1), 
-		                                                  0.5f);
-		this.gameObject.camera.orthographicSize = Mathf.Max (this.rows, this.cols) / 2.5f;
+	private void PlaceCam() {
+//		this.gameObject.transform.position = Vector3.Lerp(camInitialPos, 
+//		                                                  new Vector3(this.rows-1, camInitialPos.y, this.cols-1), 
+//		                                                  0.5f);
+//		this.gameObject.camera.orthographicSize = Mathf.Max (this.rows, this.cols) / 2.5f;
 	}
 
-	public void changeTile(int x, int y, int type) {
-		Vector3 pos = this.tiles [x, y].transform.position;
-		Destroy (this.tiles [x, y]);
-		this.tiles [x, y] = (GameObject)GameObject.Instantiate (this.tileTypes [type]);
-		this.tiles [x, y].transform.position = pos;
-		// TODO: Check that there's only one packager
+	private void Start () {
+		settings = this.gameObject.GetComponent <SimulatorControls>();
+		this.rows = (int) settings.nRows;
+		this.cols = (int) settings.nCols;
+		GenerateTiles ();
 	}
 
+	private void Update () {
+		if ((int)settings.nCols != this.cols || (int)settings.nRows != this.rows) {
+			this.rows = (int) settings.nRows;
+			this.cols = (int) settings.nCols;
+			GenerateTiles ();
+		}
+	}
 
 }

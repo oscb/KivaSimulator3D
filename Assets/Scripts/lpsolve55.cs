@@ -189,8 +189,8 @@ namespace lpsolve55
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern lpsolve_BBstrategies get_bb_rule(int lp);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern bool get_bounds_tighter(int lp);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern double get_break_at_value(int lp);
-		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern string get_col_name(int lp, int column);
-		//[DllImport("lpsolve55.dll", EntryPoint = "get_col_name", SetLastError = true)] private unsafe static extern IntPtr get_col_name_c(int lp, int column);
+//		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern string get_col_name(int lp, int column);
+		[DllImport("lpsolve55.dll", EntryPoint = "get_col_name", SetLastError = true)] private unsafe static extern IntPtr get_col_name_c(int lp, int column);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern bool get_column(int lp, int col_nr, double[] column);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern int get_columnex(int lp, int col_nr, double[] column, int[] nzrow);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern lpsolve_constr_types get_constr_type(int lp, int row);
@@ -400,7 +400,36 @@ namespace lpsolve55
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern bool write_mps(int lp, string filename);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern bool write_XLI(int lp, string filename, string options, bool results);
 		[DllImport("lpsolve55.dll", SetLastError=true)] public static extern bool write_params(int lp, string filename, string options);
-
+		
+		public static string get_col_name(int lp, int column)
+		{
+			return (Marshal.PtrToStringAnsi(get_col_name_c(lp, column)));
+		}
+		
+//		public static string get_lp_name(int lp)
+//		{
+//			return(Marshal.PtrToStringAnsi(get_lp_name_c(lp)));
+//		}
+//		
+//		public static string get_origcol_name(int lp, int column)
+//		{
+//			return(Marshal.PtrToStringAnsi(get_origcol_name_c(lp, column)));
+//		}
+//		
+//		public static string get_origrow_name(int lp, int row)
+//		{
+//			return(Marshal.PtrToStringAnsi(get_origrow_name_c(lp, row)));
+//		}
+//		
+//		public static string get_row_name(int lp, int row)
+//		{
+//			return(Marshal.PtrToStringAnsi(get_row_name_c(lp, row)));
+//		}
+//		
+//		public static string get_statustext(int lp, int statuscode)
+//		{
+//			return(Marshal.PtrToStringAnsi(get_statustext_c(lp, statuscode)));
+//		}
 		
 		[DllImport("kernel32", SetLastError=true)] private static extern int SetEnvironmentVariableA ( string  lpName,  string  lpValue);
 		[DllImport("kernel32", SetLastError=true)] private static extern int GetEnvironmentVariableA ( string  lpName,  string  lpBuffer,  int nSize);
