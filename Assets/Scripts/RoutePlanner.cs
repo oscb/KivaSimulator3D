@@ -96,9 +96,8 @@ public class RoutePlanner : MonoBehaviour {
 //		GenLinear (3, 2, 0,0);
 	}
 
-	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, ArrayList lockPositions = null) {
+	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, bool returningRack = false, ArrayList lockPositions = null) {
 		Debug.Log ("GenLinear Start");
-		Debug.Break();
 		
 		if (this.adj_matrix == null) return null;
 		int lp, totalVars, startf, endf;
@@ -132,7 +131,6 @@ public class RoutePlanner : MonoBehaviour {
 		lpsolve.set_minim (lp);
 		
 		Debug.Log ("GenLinear Lp Inited");
-		Debug.Break();
 
 		// 4. Set Constraints:
 		lpsolve.set_add_rowmode(lp, true);
@@ -151,15 +149,19 @@ public class RoutePlanner : MonoBehaviour {
 			in_vals = new ArrayList();
 
 			for (int j = 0; j < this.numVars; j++) {
-				Debug.Log("(" + i + ", " + j + ")" + this.adj_matrix[i, j] + "|" + this.adj_matrix[j, i]);
-				if (this.adj_matrix[i, j] == 1 || (!holdingRack && this.adj_matrix[i, j] == 2)) {
+//				Debug.Log("(" + i + ", " + j + ")" + this.adj_matrix[i, j] + "|" + this.adj_matrix[j, i]);
+				if (this.adj_matrix[i, j] == 1 || 
+					(!holdingRack && this.adj_matrix[i, j] == 2) || 
+				    (holdingRack && returningRack && j == endf && this.adj_matrix[i, j] == 2)) {
 					outs.Add(CoordinateToFlat(i, j, this.numVars) + 1);
 					out_vals.Add(1.0d);
-				} else {
+				} else if (!(holdingRack && returningRack && j == endf && this.adj_matrix[i, j] == 2)) {
 					zeros.Add (CoordinateToFlat(i, j, this.numVars) + 1);
 					zero_vals.Add(1.0d);
 				}
-				if (this.adj_matrix[j, i] == 1 || (!holdingRack && this.adj_matrix[j, i] == 2)) {
+				if (this.adj_matrix[j, i] == 1 || 
+					(!holdingRack && this.adj_matrix[j, i] == 2) || 
+				    (holdingRack && returningRack && i == endf && this.adj_matrix[j, i] == 2)) {
 					ins.Add(CoordinateToFlat(j, i, this.numVars) + 1);
 					in_vals.Add(-1.0d);
 				}
@@ -230,7 +232,7 @@ public class RoutePlanner : MonoBehaviour {
 		lpsolve.set_add_rowmode(lp, false);
 		
 		Debug.Log ("GenLinear Before Write");
-		Debug.Break();
+		
 		lpsolve.write_lp(lp, "model.lp");
 		
 		// 5. Solve.
@@ -238,7 +240,7 @@ public class RoutePlanner : MonoBehaviour {
 		lpsolve.write_lp(lp, "model.lp");
 		
 		Debug.Log ("GenLinear Before Solution");
-		Debug.Break();
+		
 		result = lpsolve.solve(lp);
 		if (result == lpsolve.lpsolve_return.OPTIMAL) {
 //			Debug.Log ("Objective = " + lpsolve.get_objective (lp));
@@ -256,7 +258,7 @@ public class RoutePlanner : MonoBehaviour {
 				}
 			}
 		Debug.Log ("GenLinear Lp Solved");
-		Debug.Break();
+		
 		} else {
 			Debug.Log(result);
 			return null;
