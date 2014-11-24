@@ -47,29 +47,29 @@ public class RoutePlanner : MonoBehaviour {
 		return new int[2]{ (int)f/n, f%n };
 	}
 
-	private void OnGUI() {
-		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
-		boxStyle.fontSize = 12;
-		boxStyle.alignment = TextAnchor.UpperLeft;
-		if (this.adj_matrix != null) {
-			int n = this.numVars;
-
-			string adjs = "";
-			adjs += "\t\t\t";
-			for (int i = 0; i < n; i++) {
-				adjs += i + "\t";
-			}
-			adjs += "\n";
-			for (int i = 0; i < n; i++) {
-				adjs += i + "\t|\t";
-				for (int j = 0; j < n; j++) {
-					adjs += "\t" + this.adj_matrix[i, j];
-				}
-				adjs += "\n";
-			}
-			GUI.Box(new Rect(0,0, 250, 200), adjs);
-		}
-	}
+//	private void OnGUI() {
+//		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
+//		boxStyle.fontSize = 12;
+//		boxStyle.alignment = TextAnchor.UpperLeft;
+//		if (this.adj_matrix != null) {
+//			int n = this.numVars;
+//
+//			string adjs = "";
+//			adjs += "\t\t\t";
+//			for (int i = 0; i < n; i++) {
+//				adjs += i + "\t";
+//			}
+//			adjs += "\n";
+//			for (int i = 0; i < n; i++) {
+//				adjs += i + "\t|\t";
+//				for (int j = 0; j < n; j++) {
+//					adjs += "\t" + this.adj_matrix[i, j];
+//				}
+//				adjs += "\n";
+//			}
+//			GUI.Box(new Rect(0,0, 250, 200), adjs);
+//		}
+//	}
 
 	public void InitMatrix(GameObject[,] tiles) {
 		this.rows = tiles.GetLength (0);
@@ -220,11 +220,11 @@ public class RoutePlanner : MonoBehaviour {
 
 		result = lpsolve.solve(lp);
 		if (result == lpsolve.lpsolve_return.OPTIMAL) {
-			Debug.Log ("Objective = " + lpsolve.get_objective (lp));
+//			Debug.Log ("Objective = " + lpsolve.get_objective (lp));
 			lpsolve.get_variables(lp, var_results);
 			for (int i = 0; i < totalVars; i++) {
 				if (var_results[i] > 0) {
-					Debug.Log(lpsolve.get_col_name(lp, i + 1) + ": " + var_results[i]);	
+//					Debug.Log(lpsolve.get_col_name(lp, i + 1) + ": " + var_results[i]);	
 					int[] aux_coord = FlatToCoordinate(i, this.numVars);
 //					Debug.Log (aux_coord[0] + ", " + aux_coord[1]);
 					aux_coord = FlatToCoordinate(aux_coord[1], this.cols);

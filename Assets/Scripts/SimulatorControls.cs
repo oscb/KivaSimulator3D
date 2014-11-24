@@ -116,7 +116,7 @@ public class SimulatorControls : MonoBehaviour {
 
 	private void Play () {
 		// Play pressed
-		Debug.Log ("Play");
+//		Debug.Log ("Play");
 		GameObject[,] tiles = tc.GetTiles ();
 		rp.InitMatrix (tiles);
 	}
@@ -130,7 +130,7 @@ public class SimulatorControls : MonoBehaviour {
 	}
 
 	private void Stop () {
-		Debug.Log ("Stop");
+//		Debug.Log ("Stop");
 	}
 	
 	private void Update () {

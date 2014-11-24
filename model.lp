@@ -11,17 +11,17 @@ min: +x0y0 +x0y1 +x0y2 +x0y3 +x0y4 +x0y5 +x0y6 +x0y7 +x0y8 +x0y9 +x0y10 +x0y11 +
 
 /* Constraints */
 +x0y1 +x0y3 -x1y0 -x3y0 = 0;
-+x1y0 +x1y2 +x1y4 = 0;
--x0y1 -x2y1 -x4y1 = -1;
+-x0y1 +x1y0 +x1y2 +x1y4 -x2y1 -x4y1 = 0;
 -x1y2 +x2y1 +x2y5 -x5y2 = 0;
 -x0y3 +x3y0 +x3y4 +x3y6 -x4y3 -x6y3 = 0;
 -x1y4 -x3y4 +x4y1 +x4y3 +x4y5 +x4y7 -x5y4 -x7y4 = 0;
 -x2y5 -x4y5 +x5y2 +x5y4 +x5y8 -x8y5 = 0;
 -x3y6 +x6y3 +x6y7 +x6y9 -x7y6 -x9y6 = 0;
 -x4y7 -x6y7 +x7y4 +x7y6 +x7y8 +x7y10 -x8y7 -x10y7 = 0;
--x5y8 -x7y8 +x8y5 +x8y7 +x8y11 -x11y8 = 0;
-+x9y6 +x9y10 = 1;
--x6y9 -x10y9 = 0;
++x8y5 +x8y7 +x8y11 = 1;
+-x5y8 -x7y8 -x11y8 = 0;
++x9y6 +x9y10 = 0;
+-x6y9 -x10y9 = -1;
 -x7y10 -x9y10 +x10y7 +x10y9 +x10y11 -x11y10 = 0;
 -x8y11 -x10y11 +x11y8 +x11y10 = 0;
 +x0y0 +x0y2 +x0y4 +x0y5 +x0y6 +x0y7 +x0y8 +x0y9 +x0y10 +x0y11 +x1y1 +x1y3 +x1y5 +x1y6 +x1y7 +x1y8 +x1y9

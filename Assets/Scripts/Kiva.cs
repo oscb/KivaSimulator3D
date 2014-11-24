@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class Kiva : MonoBehaviour {
@@ -10,18 +11,19 @@ public class Kiva : MonoBehaviour {
 	private string rackTag = "TileRack";
 	private string packagerTag = "TilePackager";
 	private Vector3 return_position;
+	private float start_time;
 
 	public enum Status {Ready, Moving, Waiting};
 	public enum Objectives {Rack, Packager, Return};
 	public float speed = 1.0F;
+	public float sleep_time = 3.0F;
 	public Status cur_status;
 	public Objectives cur_objective = Objectives.Rack;
 	public GameObject rack;
 
 	private ArrayList CalculateRoute(Vector3 where) {
-		// TODO: If the kiva is not exactly on place it may not return a good result, 
-		// better to set start position checking wich tiles is directly below it (raycast) and getting its position instead
-		int[] start = new int[2] {(int) this.transform.position.x, (int) this.transform.position.z};
+		Transform t = GetCurrentTile();
+		int[] start = new int[2] {(int)t.position.x, (int)t.position.z};
 		int[] end = new int[2]{(int) where.x, (int) where.z};
 
 		return Camera.main.GetComponent<RoutePlanner> ().GenLinear (start[0], start[1], end[0], end[1]);
@@ -35,11 +37,10 @@ public class Kiva : MonoBehaviour {
 		return ConvertPointToVector3 (new int[2] {(int) destination.x, (int) destination.z});
 	}
 
-	private Vector3 FindObjective() {
+	private bool FindObjective() {
 		// If no holding rack, select a random rack as objective
 		// If holding rack go to random packager
 		// If holding rack and went already to packager return rack
-		Vector3 objective = Vector3.zero;
 		
 		switch (this.cur_objective) {
 			case Objectives.Rack:
@@ -47,7 +48,8 @@ public class Kiva : MonoBehaviour {
 				this.rack = FindNextRack();
 				if (this.rack) {
 					this.return_position = this.rack.transform.position;
-					objective = EqualizePointsHeight(this.return_position);
+					this.final_point = EqualizePointsHeight(this.return_position);
+					return true;
 				} else {
 					Debug.Log("ERROR: No se encuentra ningún rack disponible");
 				}
@@ -56,31 +58,36 @@ public class Kiva : MonoBehaviour {
 				Debug.Log("Packager");
 				GameObject packager = FindPackager();
 				if (packager != null) {
-					objective = EqualizePointsHeight(packager.transform.position);
+					this.final_point = EqualizePointsHeight(packager.transform.position);
+					return true;
 				}
 				break;
 			case Objectives.Return:
 				Debug.Log ("Return");
 				if (this.return_position != null) {
-					objective = EqualizePointsHeight(this.return_position);
+					this.final_point = EqualizePointsHeight(this.return_position);
+					return true;
 				}
 				break;
 		}
 		
-		return objective;
+		return false;
 	}
 
 	private GameObject FindNextRack() {
 		GameObject target = null;
-		GameObject[] tiles = GameObject.FindGameObjectsWithTag (rackTag);
+		ArrayList tiles = new ArrayList();
+		tiles.AddRange(GameObject.FindGameObjectsWithTag (rackTag));
+		
 
-		while (target == null && tiles.Length > 0) {
-			int i = (int)Random.Range (0, tiles.Length);
-			RackData rd = tiles [i].GetComponent<RackData> ();
+		while (target == null && tiles.Count > 0) {
+			int i = (int) UnityEngine.Random.Range (0, tiles.Count);
+			RackData rd = ((GameObject) tiles[i]).GetComponent<RackData> ();
 			if (rd.selected == false) {
 				rd.selected = true;
-				target = tiles[i];
+				target = (GameObject) tiles[i];
 			}
+			tiles.RemoveAt(i);
 		}
 		return target;
 	}
@@ -90,35 +97,55 @@ public class Kiva : MonoBehaviour {
 		GameObject[] tiles = GameObject.FindGameObjectsWithTag (packagerTag);
 
 		if (tiles.Length > 0) {
-			int i = (int)Random.Range (0, tiles.Length);
+			int i = (int) UnityEngine.Random.Range (0, tiles.Length);
 			return tiles[i];
 		}
 		return null;
 	}
-
-
-	// Use this for initialization
+	
+	private Transform GetCurrentTile() {
+		
+		RaycastHit rh = new RaycastHit();
+		if (Physics.Raycast(this.transform.position, -this.transform.up, out rh)) {
+			return rh.collider.transform;
+		}
+		return null;
+	}
+	
+	private Transform GetChildWithTag(Transform p, string tag) {
+		foreach(Transform child in p){
+			if(child.CompareTag(tag))
+				return child;
+		}
+		return null;
+	}
+	
 	private void Start () {
 		this.cur_status = Status.Ready;
 		this.cur_objective = Objectives.Rack;
 		this.start_point = this.transform.position;
 	}
 	
-	// Update is called once per frame
 	private void Update () {
+		Transform r;
 
 		if (SimulatorControls.GetState() == 0) {
 
 			if (this.path == null) {
 				// Set the finalpoint and set the path
-				this.final_point = FindObjective();
-				this.path = this.CalculateRoute(this.final_point);
+				if (FindObjective()) {
+					this.path = this.CalculateRoute(this.final_point);
+				} else {
+					this.cur_status = Status.Waiting;
+					this.start_time = Time.time;
+				}
+				
 			}
 
 			switch (cur_status) {
 				case Status.Ready:
 					
-					if (this.path != null) {
+					if (this.path != null && this.path.Count > 0) {
 						int min_index = -1;
 						float distance = 99999999;
 						for (int i = 0; i < this.path.Count; i++) {
@@ -134,13 +161,35 @@ public class Kiva : MonoBehaviour {
 							next_point = new Vector3 ((this.path[min_index] as int[])[0], this.transform.position.y, (this.path[min_index] as int[])[1]);
 							this.path.RemoveAt(min_index);
 							cur_status = Status.Moving;
-						} else {
-							Debug.Break();
 						}
 					} else {
 						if (transform.position == this.final_point) {
 							Debug.Log(this.cur_objective);
-							Debug.Break();
+							
+							switch (this.cur_objective) {
+								case Objectives.Rack:
+									r = GetChildWithTag(this.rack.transform, "Racks");
+									if (r) {
+										r.parent = this.transform;
+									}
+									this.cur_objective = Objectives.Packager;
+									break;
+								case Objectives.Packager:
+									this.cur_objective = Objectives.Return;
+									break;
+								case Objectives.Return:
+									r = GetChildWithTag(this.transform, "Racks");		
+									if (r) {
+										r.parent = this.rack.transform;
+									}
+									this.rack.GetComponent<RackData> ().selected = false;
+									this.rack = null;
+									this.cur_objective = Objectives.Rack;
+									break;
+								default:
+									break;
+							}
+							this.path = null;
 						} else {
 							Debug.Log("ERROR: Imposible llegar al destino");
 						}
@@ -148,7 +197,7 @@ public class Kiva : MonoBehaviour {
 					break;
 
 				case Status.Moving:
-					Debug.DrawLine(transform.position, next_point, Color.green);
+//					Debug.DrawLine(transform.position, next_point, Color.green);
 				          
 					float step = speed * Time.deltaTime;
 					transform.position = Vector3.MoveTowards(transform.position, next_point, step);
@@ -165,6 +214,9 @@ public class Kiva : MonoBehaviour {
 					break;
 
 				case Status.Waiting:
+					if (Time.time - this.start_time > this.sleep_time) {
+						this.cur_status = Status.Ready;
+					}
 					break;
 
 				default:
