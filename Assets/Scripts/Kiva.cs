@@ -44,7 +44,6 @@ public class Kiva : MonoBehaviour {
 		
 		switch (this.cur_objective) {
 			case Objectives.Rack:
-				Debug.Log("Rack");
 				this.rack = FindNextRack();
 				if (this.rack) {
 					this.return_position = this.rack.transform.position;
@@ -55,7 +54,6 @@ public class Kiva : MonoBehaviour {
 				}
 				break;
 			case Objectives.Packager:
-				Debug.Log("Packager");
 				GameObject packager = FindPackager();
 				if (packager != null) {
 					this.final_point = EqualizePointsHeight(packager.transform.position);
@@ -63,7 +61,6 @@ public class Kiva : MonoBehaviour {
 				}
 				break;
 			case Objectives.Return:
-				Debug.Log ("Return");
 				if (this.return_position != null) {
 					this.final_point = EqualizePointsHeight(this.return_position);
 					return true;
@@ -164,7 +161,7 @@ public class Kiva : MonoBehaviour {
 						}
 					} else {
 						if (transform.position == this.final_point) {
-							Debug.Log(this.cur_objective);
+//							Debug.Log(this.cur_objective);
 							
 							switch (this.cur_objective) {
 								case Objectives.Rack:
