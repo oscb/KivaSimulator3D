@@ -25,8 +25,14 @@ public class Kiva : MonoBehaviour {
 		Transform t = GetCurrentTile();
 		int[] start = new int[2] {(int)t.position.x, (int)t.position.z};
 		int[] end = new int[2]{(int) where.x, (int) where.z};
+		bool holdingRack = false;
 
-		return Camera.main.GetComponent<RoutePlanner> ().GenLinear (start[0], start[1], end[0], end[1]);
+		if (this.cur_objective == Objectives.Packager || this.cur_objective == Objectives.Return) {
+			holdingRack = true;
+		}
+		Debug.Log ("kiva CalcRoute");
+		Debug.Break();
+		return Camera.main.GetComponent<RoutePlanner> ().GenLinear (start[0], start[1], end[0], end[1], holdingRack);
 	}
 
 	private Vector3 ConvertPointToVector3(int[] point) {

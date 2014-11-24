@@ -47,29 +47,29 @@ public class RoutePlanner : MonoBehaviour {
 		return new int[2]{ (int)f/n, f%n };
 	}
 
-//	private void OnGUI() {
-//		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
-//		boxStyle.fontSize = 12;
-//		boxStyle.alignment = TextAnchor.UpperLeft;
-//		if (this.adj_matrix != null) {
-//			int n = this.numVars;
-//
-//			string adjs = "";
-//			adjs += "\t\t\t";
-//			for (int i = 0; i < n; i++) {
-//				adjs += i + "\t";
-//			}
-//			adjs += "\n";
-//			for (int i = 0; i < n; i++) {
-//				adjs += i + "\t|\t";
-//				for (int j = 0; j < n; j++) {
-//					adjs += "\t" + this.adj_matrix[i, j];
-//				}
-//				adjs += "\n";
-//			}
-//			GUI.Box(new Rect(0,0, 250, 200), adjs);
-//		}
-//	}
+	private void OnGUI() {
+		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
+		boxStyle.fontSize = 12;
+		boxStyle.alignment = TextAnchor.UpperLeft;
+		if (this.adj_matrix != null) {
+			int n = this.numVars;
+
+			string adjs = "";
+			adjs += "\t\t\t";
+			for (int i = 0; i < n; i++) {
+				adjs += i + "\t";
+			}
+			adjs += "\n";
+			for (int i = 0; i < n; i++) {
+				adjs += i + "\t|\t";
+				for (int j = 0; j < n; j++) {
+					adjs += "\t" + this.adj_matrix[i, j];
+				}
+				adjs += "\n";
+			}
+			GUI.Box(new Rect(0,0, 250, 200), adjs);
+		}
+	}
 
 	public void InitMatrix(GameObject[,] tiles) {
 		this.rows = tiles.GetLength (0);
@@ -88,15 +88,18 @@ public class RoutePlanner : MonoBehaviour {
 					string tile_type = tiles[item[0], item[1]].gameObject.GetComponent<TileData>().type.ToString();
 					if (tile_type != "Boundary") 
 						this.adj_matrix[flatpos, CoordinateToFlat(item[0], item[1], this.cols)] = 1;
+					if (tile_type == "Rack") 
+						this.adj_matrix[flatpos, CoordinateToFlat(item[0], item[1], this.cols)] = 2;
 				}
-				// TODO: Discover how to dinamically change to block paths with Packager when not holding a rack 
-				// and Rack when holding rack
 			}
 		}
 //		GenLinear (3, 2, 0,0);
 	}
 
-	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y) {
+	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, ArrayList lockPositions = null) {
+		Debug.Log ("GenLinear Start");
+		Debug.Break();
+		
 		if (this.adj_matrix == null) return null;
 		int lp, totalVars, startf, endf;
 		double[] obj;
@@ -126,6 +129,10 @@ public class RoutePlanner : MonoBehaviour {
 			obj [i] = 1;
 		}
 		lpsolve.set_obj_fn(lp, obj);
+		lpsolve.set_minim (lp);
+		
+		Debug.Log ("GenLinear Lp Inited");
+		Debug.Break();
 
 		// 4. Set Constraints:
 		lpsolve.set_add_rowmode(lp, true);
@@ -143,59 +150,68 @@ public class RoutePlanner : MonoBehaviour {
 			ins = new ArrayList();
 			in_vals = new ArrayList();
 
-			// TODO: Check where is Start and End
 			for (int j = 0; j < this.numVars; j++) {
-//				Debug.Log("(" + i + ", " + j + ")" + this.adj_matrix[i, j] + "|" + this.adj_matrix[j, i]);
-				if (this.adj_matrix[i, j] == 1) {
+				Debug.Log("(" + i + ", " + j + ")" + this.adj_matrix[i, j] + "|" + this.adj_matrix[j, i]);
+				if (this.adj_matrix[i, j] == 1 || (!holdingRack && this.adj_matrix[i, j] == 2)) {
 					outs.Add(CoordinateToFlat(i, j, this.numVars) + 1);
 					out_vals.Add(1.0d);
-
-					if (this.adj_matrix[j, i] == 1) {
-						ins.Add(CoordinateToFlat(j, i, this.numVars) + 1);
-						in_vals.Add(-1.0d);
-					}
-
 				} else {
 					zeros.Add (CoordinateToFlat(i, j, this.numVars) + 1);
 					zero_vals.Add(1.0d);
 				}
+				if (this.adj_matrix[j, i] == 1 || (!holdingRack && this.adj_matrix[j, i] == 2)) {
+					ins.Add(CoordinateToFlat(j, i, this.numVars) + 1);
+					in_vals.Add(-1.0d);
+				}
 			}
 
 			if (i == startf) {
-				lpsolve.add_constraintex (lp, 
-				                          outs.Count, 
-				                          BuildDoubleArray(out_vals), 
-				                          BuildIntArray(outs), 
-				                          lpsolve.lpsolve_constr_types.EQ, 
-				                          1);
-				lpsolve.add_constraintex (lp, 
-				                          outs.Count, 
-				                          BuildDoubleArray(in_vals), 
-				                          BuildIntArray(ins), 
-				                          lpsolve.lpsolve_constr_types.EQ, 
-				                          0);
+				if (outs.Count > 0) {
+					lpsolve.add_constraintex (lp, 
+					                          outs.Count, 
+					                          BuildDoubleArray(out_vals), 
+					                          BuildIntArray(outs), 
+					                          lpsolve.lpsolve_constr_types.EQ, 
+					                          1);
+                }
+                
+				if (ins.Count > 0) {
+					lpsolve.add_constraintex (lp, 
+						                      ins.Count, 
+					                          BuildDoubleArray(in_vals), 
+					                          BuildIntArray(ins), 
+					                          lpsolve.lpsolve_constr_types.EQ, 
+					                          0);
+                }
 			} else if (i == endf) {
-				lpsolve.add_constraintex (lp, 
-				                          outs.Count, 
-				                          BuildDoubleArray(out_vals), 
-				                          BuildIntArray(outs), 
-				                          lpsolve.lpsolve_constr_types.EQ, 
-				                          0);
-				lpsolve.add_constraintex (lp, 
-				                          outs.Count, 
-				                          BuildDoubleArray(in_vals), 
-				                          BuildIntArray(ins), 
-				                          lpsolve.lpsolve_constr_types.EQ, 
-				                          -1);
+				if (outs.Count > 0) {
+					lpsolve.add_constraintex (lp, 
+					                          outs.Count, 
+					                          BuildDoubleArray(out_vals), 
+					                          BuildIntArray(outs), 
+					                          lpsolve.lpsolve_constr_types.EQ, 
+					                          0);
+                }
+				if (ins.Count > 0) {                    
+					lpsolve.add_constraintex (lp, 
+					                          ins.Count, 
+					                          BuildDoubleArray(in_vals), 
+					                          BuildIntArray(ins), 
+					                          lpsolve.lpsolve_constr_types.EQ, 
+					                          -1);
+          		}	
 			} else {
 				out_vals.AddRange(in_vals);
 				outs.AddRange(ins);
-				lpsolve.add_constraintex (lp, 
-				                          outs.Count, 
-				                          BuildDoubleArray(out_vals), 
-				                          BuildIntArray(outs), 
-				                          lpsolve.lpsolve_constr_types.EQ, 
-				                          0);
+				
+				if (outs.Count > 0) {
+					lpsolve.add_constraintex (lp, 
+					                          outs.Count, 
+					                          BuildDoubleArray(out_vals), 
+					                          BuildIntArray(outs), 
+					                          lpsolve.lpsolve_constr_types.EQ, 
+					                          0);
+                }
 			}
 		}
 
@@ -212,12 +228,17 @@ public class RoutePlanner : MonoBehaviour {
 		// 4.6. Block ins to a Kiva position (if path blocked)
 
 		lpsolve.set_add_rowmode(lp, false);
-
+		
+		Debug.Log ("GenLinear Before Write");
+		Debug.Break();
+		lpsolve.write_lp(lp, "model.lp");
+		
 		// 5. Solve.
 		lpsolve.lpsolve_return result;
-		lpsolve.set_minim (lp);
 		lpsolve.write_lp(lp, "model.lp");
-
+		
+		Debug.Log ("GenLinear Before Solution");
+		Debug.Break();
 		result = lpsolve.solve(lp);
 		if (result == lpsolve.lpsolve_return.OPTIMAL) {
 //			Debug.Log ("Objective = " + lpsolve.get_objective (lp));
@@ -234,6 +255,8 @@ public class RoutePlanner : MonoBehaviour {
 					path.Add(new int[2] {aux_coord[0], aux_coord[1]});
 				}
 			}
+		Debug.Log ("GenLinear Lp Solved");
+		Debug.Break();
 		} else {
 			Debug.Log(result);
 			return null;
