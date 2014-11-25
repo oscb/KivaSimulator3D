@@ -35,7 +35,7 @@ public class LPSolveLoaderPost {
 		// Load XML
 		string dllConfigFileName = pathToBuiltProject+"/Contents/Data/Managed/etc/mono/config";
 		Debug.Log (dllConfigFileName);
-		LPSolveLoaderPost.loadLPSolveLib (dllConfigFileName, destPath);
+		LPSolveLoaderPost.loadLPSolveLib (dllConfigFileName, "Kiva.app/Contents/Frameworks/LPSolve/liblpsolve55.dylib");
 	}
 
 	public static void loadLPSolveLib(string xmlFile, string libFile) {
