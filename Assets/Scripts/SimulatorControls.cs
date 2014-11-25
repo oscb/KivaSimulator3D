@@ -89,7 +89,7 @@ public class SimulatorControls : MonoBehaviour {
 		GUILayout.EndArea ();
 		
 		// Controls Right Bottom
-		GUILayout.BeginArea(new Rect(Screen.width/2 + marginSize, Screen.height - toolbarHeight/2, 
+		GUILayout.BeginArea(new Rect(Screen.width/2 + marginSize, Screen.height - toolbarHeight/2 - marginSize*2, 
 		                             Screen.width/2 - marginSize * 2, toolbarHeight/2));
 		GUILayout.BeginHorizontal ();
 		GUILayout.FlexibleSpace();

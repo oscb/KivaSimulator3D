@@ -34,6 +34,7 @@ public class LPSolveLoaderPost {
 
 		// Load XML
 		string dllConfigFileName = pathToBuiltProject+"/Contents/Data/Managed/etc/mono/config";
+		Debug.Log (dllConfigFileName);
 		LPSolveLoaderPost.loadLPSolveLib (dllConfigFileName, destPath);
 	}
 

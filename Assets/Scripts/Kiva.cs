@@ -122,12 +122,14 @@ public class Kiva : MonoBehaviour {
 		this.cur_status = Status.Ready;
 		this.cur_objective = Objectives.Rack;
 		this.start_point = this.transform.position;
+		this.transform.GetChild(0).animation.Stop();
 	}
 	
 	private void Update () {
 		Transform r;
 
 		if (SimulatorControls.GetState() == 0) {
+			this.transform.GetChild(0).animation.Play();
 		
 			float step = speed * Time.deltaTime;
 			if (next_point != transform.position) {
@@ -257,6 +259,7 @@ public class Kiva : MonoBehaviour {
 					break;
 
 				case Status.Waiting:
+					this.transform.GetChild(0).animation.Stop();
 					if (Time.time - this.start_time >= this.sleep_time) {
 						this.cur_status = Status.Moving;
 					}
@@ -265,6 +268,8 @@ public class Kiva : MonoBehaviour {
 				default:
 					break;
 			}
+		} else {
+			this.transform.GetChild(0).animation.Stop();
 		}
 	}
 
