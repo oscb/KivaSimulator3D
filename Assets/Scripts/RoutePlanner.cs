@@ -47,29 +47,29 @@ public class RoutePlanner : MonoBehaviour {
 		return new int[2]{ (int)f/n, f%n };
 	}
 
-	private void OnGUI() {
-		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
-		boxStyle.fontSize = 12;
-		boxStyle.alignment = TextAnchor.UpperLeft;
-		if (this.adj_matrix != null) {
-			int n = this.numVars;
-
-			string adjs = "";
-			adjs += "\t\t\t";
-			for (int i = 0; i < n; i++) {
-				adjs += i + "\t";
-			}
-			adjs += "\n";
-			for (int i = 0; i < n; i++) {
-				adjs += i + "\t|\t";
-				for (int j = 0; j < n; j++) {
-					adjs += "\t" + this.adj_matrix[i, j];
-				}
-				adjs += "\n";
-			}
-			GUI.Box(new Rect(0,0, 250, 200), adjs);
-		}
-	}
+//	private void OnGUI() {
+//		GUIStyle boxStyle = GUI.skin.GetStyle ("Box");
+//		boxStyle.fontSize = 12;
+//		boxStyle.alignment = TextAnchor.UpperLeft;
+//		if (this.adj_matrix != null) {
+//			int n = this.numVars;
+//
+//			string adjs = "";
+//			adjs += "\t\t\t";
+//			for (int i = 0; i < n; i++) {
+//				adjs += i + "\t";
+//			}
+//			adjs += "\n";
+//			for (int i = 0; i < n; i++) {
+//				adjs += i + "\t|\t";
+//				for (int j = 0; j < n; j++) {
+//					adjs += "\t" + this.adj_matrix[i, j];
+//				}
+//				adjs += "\n";
+//			}
+//			GUI.Box(new Rect(0,0, 250, 200), adjs);
+//		}
+//	}
 
 	public void InitMatrix(GameObject[,] tiles) {
 		this.rows = tiles.GetLength (0);
@@ -96,15 +96,28 @@ public class RoutePlanner : MonoBehaviour {
 //		GenLinear (3, 2, 0,0);
 	}
 
-	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, bool returningRack = false, ArrayList lockPositions = null) {
-//		Debug.Log ("GenLinear Start");
-		
+	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, bool returningRack = false, ArrayList blockPositions = null) {		
 		if (this.adj_matrix == null) return null;
 		int lp, totalVars, startf, endf;
 		double[] obj;
 		ArrayList zero_vals, zeros, outs, out_vals, ins, in_vals;
 		double[] var_results;
 		ArrayList path = new ArrayList();
+		ArrayList changes = new ArrayList();
+		
+		// 0. If Blocked paths mark them on adjacency table
+		if (blockPositions != null) {
+			foreach (var blocked in blockPositions) {
+				int[] aux = (blocked as int[]);
+				int faux = CoordinateToFlat(aux[0], aux[1], this.cols);
+				for (int i = 0; i < this.numVars; i++) {
+					if (this.adj_matrix[i, faux] != 0) {
+						changes.Add(new int[3] {i, faux, this.adj_matrix[i, faux]});
+						this.adj_matrix[i, faux] = 0;
+					}
+				}
+			}
+		}
 
 		// 1. Set LP Solve matrix with 0 rows and ajd_matrix N cols
 		// TODO: (optional) Optimize and set only variables used (not full table)
@@ -117,7 +130,6 @@ public class RoutePlanner : MonoBehaviour {
 		for (int i = 0; i < (int)Mathf.Pow(this.numVars, 2); i++) {
 			int x = i / this.numVars;
 			int y = i % this.numVars;
-//			string var_name = x + ", " + y;
 			string var_name = "x" + x + "y" + y;
 			lpsolve.set_col_name(lp, i+1, var_name);
 		}
@@ -129,8 +141,6 @@ public class RoutePlanner : MonoBehaviour {
 		}
 		lpsolve.set_obj_fn(lp, obj);
 		lpsolve.set_minim (lp);
-		
-//		Debug.Log ("GenLinear Lp Inited");
 
 		// 4. Set Constraints:
 		lpsolve.set_add_rowmode(lp, true);
@@ -149,21 +159,23 @@ public class RoutePlanner : MonoBehaviour {
 			in_vals = new ArrayList();
 
 			for (int j = 0; j < this.numVars; j++) {
-//				Debug.Log("(" + i + ", " + j + ")" + this.adj_matrix[i, j] + "|" + this.adj_matrix[j, i]);
 				if (this.adj_matrix[i, j] == 1 || 
 					(!holdingRack && this.adj_matrix[i, j] == 2) || 
 				    (holdingRack && returningRack && j == endf && this.adj_matrix[i, j] == 2)) {
 					outs.Add(CoordinateToFlat(i, j, this.numVars) + 1);
 					out_vals.Add(1.0d);
+					
 				} else if (!(holdingRack && returningRack && j == endf && this.adj_matrix[i, j] == 2)) {
 					zeros.Add (CoordinateToFlat(i, j, this.numVars) + 1);
 					zero_vals.Add(1.0d);
+					
 				}
 				if (this.adj_matrix[j, i] == 1 || 
 					(!holdingRack && this.adj_matrix[j, i] == 2) || 
 				    (holdingRack && returningRack && i == endf && this.adj_matrix[j, i] == 2)) {
 					ins.Add(CoordinateToFlat(j, i, this.numVars) + 1);
 					in_vals.Add(-1.0d);
+					
 				}
 			}
 
@@ -231,15 +243,11 @@ public class RoutePlanner : MonoBehaviour {
 
 		lpsolve.set_add_rowmode(lp, false);
 		
-//		Debug.Log ("GenLinear Before Write");
-		
-		lpsolve.write_lp(lp, "model.lp");
+//		lpsolve.write_lp(lp, "model.lp");
 		
 		// 5. Solve.
 		lpsolve.lpsolve_return result;
 		lpsolve.write_lp(lp, "model.lp");
-		
-//		Debug.Log ("GenLinear Before Solution");
 		
 		result = lpsolve.solve(lp);
 		if (result == lpsolve.lpsolve_return.OPTIMAL) {
@@ -257,11 +265,16 @@ public class RoutePlanner : MonoBehaviour {
 					path.Add(new int[2] {aux_coord[0], aux_coord[1]});
 				}
 			}
-//		Debug.Log ("GenLinear Lp Solved");
 		
 		} else {
 			Debug.Log(result);
 			return null;
+		}
+		
+		// 0. Return Matrix to orginal State
+		foreach (var change in changes) {
+			int[] aux = (change as int[]);
+			this.adj_matrix[aux[0], aux[1]] = aux[2];
 		}
 
 		lpsolve.delete_lp(lp);

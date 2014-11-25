@@ -21,17 +21,23 @@ public class Kiva : MonoBehaviour {
 	public Objectives cur_objective = Objectives.Rack;
 	public GameObject rack;
 
-	private ArrayList CalculateRoute(Vector3 where) {
+	private ArrayList CalculateRoute(Vector3 where, Vector3[] blockPositions = null ) {
 		Transform t = GetCurrentTile();
 		int[] start = new int[2] {(int)t.position.x, (int)t.position.z};
 		int[] end = new int[2]{(int) where.x, (int) where.z};
+		ArrayList blocked = null;
 		
-		// TODO: Check all directions before moving to dectect kivas nearby and remove them (4 squares around)
-		
+		if (blockPositions != null && blockPositions.Length > 0) {
+			blocked = new ArrayList();
+			foreach (var item in blockPositions) {
+				blocked.Add(new int[2] {(int)item.x, (int)item.z});
+			}
+		}
 		
 		return Camera.main.GetComponent<RoutePlanner> ().GenLinear (start[0], start[1], end[0], end[1], 
 			this.cur_objective == Objectives.Packager || this.cur_objective == Objectives.Return, 
-			this.cur_objective == Objectives.Return);
+            this.cur_objective == Objectives.Return, 
+            blocked);
 	}
 
 	private Vector3 ConvertPointToVector3(int[] point) {
@@ -95,21 +101,11 @@ public class Kiva : MonoBehaviour {
 	}
 
 	private GameObject FindPackager() {
-		GameObject target;
 		GameObject[] tiles = GameObject.FindGameObjectsWithTag (packagerTag);
 
 		if (tiles.Length > 0) {
 			int i = (int) UnityEngine.Random.Range (0, tiles.Length);
 			return tiles[i];
-		}
-		return null;
-	}
-	
-	private Transform GetCurrentTile() {
-		
-		RaycastHit rh = new RaycastHit();
-		if (Physics.Raycast(this.transform.position, -this.transform.up, out rh)) {
-			return rh.collider.transform;
 		}
 		return null;
 	}
@@ -134,10 +130,10 @@ public class Kiva : MonoBehaviour {
 		if (SimulatorControls.GetState() == 0) {
 		
 			float step = speed * Time.deltaTime;
-//			if (next_point != transform.position) {
+			if (next_point != transform.position) {
 				Quaternion rotation = Quaternion.LookRotation(next_point - transform.position);
 				transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, step * 750);
-//			}
+			}
 			
 			
 			if (this.path == null) {
@@ -206,34 +202,48 @@ public class Kiva : MonoBehaviour {
 					break;
 
 				case Status.Moving:
-//					Debug.DrawLine(transform.position, next_point, Color.green);
 
 					RaycastHit hit;
 					int m = 1 << 11;
 					Vector3 aux = this.transform.position;
 					aux.y += 0.25f;
 					
-					Debug.DrawRay(aux, this.transform.forward, Color.blue);
-					Debug.DrawRay(aux, this.transform.forward + this.transform.right, Color.green);
+//					Debug.DrawRay(aux, this.transform.forward, Color.blue);
+//					Debug.DrawRay(aux, this.transform.forward + this.transform.right, Color.green);
 				
 					if (Physics.Raycast(aux, this.transform.forward, out hit, 0.5f, m)) {
 						if (hit.collider.transform.forward == -this.transform.forward) {
-							// Head to Head Collission, Recalculate Route	
-//							Debug.Break();
+							// Head to Head Collission, Recalculate Route
+							// TODO: Set order with Kiva Packager > Return > Rack
+							Objectives other_obj = hit.collider.gameObject.GetComponent<Kiva>().cur_objective;
+							if (!(other_obj == Objectives.Packager && this.cur_objective == Objectives.Packager)) {
+								if ((this.cur_objective == Objectives.Return && other_obj != Objectives.Rack) || 
+									this.cur_objective == Objectives.Rack) {
+								
+									Transform other = hit.collider.gameObject.GetComponent<Kiva>().GetCurrentTile();
+									this.path = this.CalculateRoute(this.final_point, new Vector3[1] {other.position});
+									this.cur_status = Status.Ready;
+									return;
+									
+								} else {
+									this.cur_status = Status.Waiting;
+									this.start_time = Time.time;
+									return;
+									
+								}
+							}
 						} else if (hit.collider.transform.forward != this.transform.forward) {
 							// Head to side, wait
 							this.cur_status = Status.Waiting;
+							this.start_time = Time.time;	
 							return;
 						}
 					}
 					
 					if (Physics.Raycast(aux, this.transform.forward + this.transform.right, out hit, 0.5f, m) ) {
-						
-						Debug.Log (this.gameObject.name);
-						Debug.Log(hit.collider.transform.forward);
-						Debug.Log(this.transform.forward);
 						if (this.transform.right == hit.collider.transform.forward || -this.transform.right == hit.collider.transform.forward) {
 							this.cur_status = Status.Waiting;
+							this.start_time = Time.time;
 							return;
 						}	 
 					}
@@ -244,11 +254,10 @@ public class Kiva : MonoBehaviour {
 						this.cur_status = Status.Ready;
 						this.start_point = this.transform.position;
 					}
-					// TODO: Detect raycast if collission, stop and wait
 					break;
 
 				case Status.Waiting:
-					if (Time.time - this.start_time > this.sleep_time) {
+					if (Time.time - this.start_time >= this.sleep_time) {
 						this.cur_status = Status.Moving;
 					}
 					break;
@@ -259,5 +268,16 @@ public class Kiva : MonoBehaviour {
 		}
 	}
 
+	public Transform GetCurrentTile() {
+		Vector3 aux = this.transform.position;
+		aux.y += 0.25f;
+		
+//		Debug.DrawRay(aux, -this.transform.up, Color.yellow);
+		RaycastHit rh = new RaycastHit();
+		if (Physics.Raycast(aux, -this.transform.up, out rh)) {
+			return rh.collider.transform;
+		}
+		return null;
+	}
 
 }

@@ -22,6 +22,7 @@ public class SimulatorControls : MonoBehaviour {
 //	public float nKivas = 1.0f;
 	public float nRows = 4.0f;
 	public float nCols = 4.0f;
+	public float speed = 10.0f;
 	static public int currentState = 1;
 
 	
@@ -153,6 +154,14 @@ public class SimulatorControls : MonoBehaviour {
 
 			}
 		}
+		
+		// Move Camera with arrows
+		float translation_y = Input.GetAxis("Vertical") * speed;
+		float translation_x = Input.GetAxis("Horizontal") * speed;
+		translation_y *= Time.deltaTime;
+		translation_x *= Time.deltaTime;
+		transform.Translate(translation_x, translation_y, 0);
+		
 		
 	}
 
