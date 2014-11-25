@@ -26,6 +26,9 @@ public class Kiva : MonoBehaviour {
 		int[] start = new int[2] {(int)t.position.x, (int)t.position.z};
 		int[] end = new int[2]{(int) where.x, (int) where.z};
 		
+		// TODO: Check all directions before moving to dectect kivas nearby and remove them (4 squares around)
+		
+		
 		return Camera.main.GetComponent<RoutePlanner> ().GenLinear (start[0], start[1], end[0], end[1], 
 			this.cur_objective == Objectives.Packager || this.cur_objective == Objectives.Return, 
 			this.cur_objective == Objectives.Return);
@@ -129,7 +132,14 @@ public class Kiva : MonoBehaviour {
 		Transform r;
 
 		if (SimulatorControls.GetState() == 0) {
-
+		
+			float step = speed * Time.deltaTime;
+//			if (next_point != transform.position) {
+				Quaternion rotation = Quaternion.LookRotation(next_point - transform.position);
+				transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, step * 750);
+//			}
+			
+			
 			if (this.path == null) {
 				// Set the finalpoint and set the path
 				if (FindObjective()) {
@@ -197,13 +207,38 @@ public class Kiva : MonoBehaviour {
 
 				case Status.Moving:
 //					Debug.DrawLine(transform.position, next_point, Color.green);
-				          
-					float step = speed * Time.deltaTime;
-					transform.position = Vector3.MoveTowards(transform.position, next_point, step);
-					if (next_point != transform.position) {
-						Quaternion rotation = Quaternion.LookRotation(next_point - transform.position);
-			          transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, step * 500);
+
+					RaycastHit hit;
+					int m = 1 << 11;
+					Vector3 aux = this.transform.position;
+					aux.y += 0.25f;
+					
+					Debug.DrawRay(aux, this.transform.forward, Color.blue);
+					Debug.DrawRay(aux, this.transform.forward + this.transform.right, Color.green);
+				
+					if (Physics.Raycast(aux, this.transform.forward, out hit, 0.5f, m)) {
+						if (hit.collider.transform.forward == -this.transform.forward) {
+							// Head to Head Collission, Recalculate Route	
+//							Debug.Break();
+						} else if (hit.collider.transform.forward != this.transform.forward) {
+							// Head to side, wait
+							this.cur_status = Status.Waiting;
+							return;
+						}
 					}
+					
+					if (Physics.Raycast(aux, this.transform.forward + this.transform.right, out hit, 0.5f, m) ) {
+						
+						Debug.Log (this.gameObject.name);
+						Debug.Log(hit.collider.transform.forward);
+						Debug.Log(this.transform.forward);
+						if (this.transform.right == hit.collider.transform.forward || -this.transform.right == hit.collider.transform.forward) {
+							this.cur_status = Status.Waiting;
+							return;
+						}	 
+					}
+					
+					transform.position = Vector3.MoveTowards(transform.position, next_point, step);
 				                                           
 					if ( transform.position == next_point) {
 						this.cur_status = Status.Ready;
@@ -214,7 +249,7 @@ public class Kiva : MonoBehaviour {
 
 				case Status.Waiting:
 					if (Time.time - this.start_time > this.sleep_time) {
-						this.cur_status = Status.Ready;
+						this.cur_status = Status.Moving;
 					}
 					break;
 

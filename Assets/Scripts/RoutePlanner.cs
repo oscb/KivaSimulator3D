@@ -97,7 +97,7 @@ public class RoutePlanner : MonoBehaviour {
 	}
 
 	public ArrayList GenLinear(int start_x, int start_y, int end_x, int end_y, bool holdingRack = false, bool returningRack = false, ArrayList lockPositions = null) {
-		Debug.Log ("GenLinear Start");
+//		Debug.Log ("GenLinear Start");
 		
 		if (this.adj_matrix == null) return null;
 		int lp, totalVars, startf, endf;
@@ -130,7 +130,7 @@ public class RoutePlanner : MonoBehaviour {
 		lpsolve.set_obj_fn(lp, obj);
 		lpsolve.set_minim (lp);
 		
-		Debug.Log ("GenLinear Lp Inited");
+//		Debug.Log ("GenLinear Lp Inited");
 
 		// 4. Set Constraints:
 		lpsolve.set_add_rowmode(lp, true);
@@ -231,7 +231,7 @@ public class RoutePlanner : MonoBehaviour {
 
 		lpsolve.set_add_rowmode(lp, false);
 		
-		Debug.Log ("GenLinear Before Write");
+//		Debug.Log ("GenLinear Before Write");
 		
 		lpsolve.write_lp(lp, "model.lp");
 		
@@ -239,7 +239,7 @@ public class RoutePlanner : MonoBehaviour {
 		lpsolve.lpsolve_return result;
 		lpsolve.write_lp(lp, "model.lp");
 		
-		Debug.Log ("GenLinear Before Solution");
+//		Debug.Log ("GenLinear Before Solution");
 		
 		result = lpsolve.solve(lp);
 		if (result == lpsolve.lpsolve_return.OPTIMAL) {
@@ -257,7 +257,7 @@ public class RoutePlanner : MonoBehaviour {
 					path.Add(new int[2] {aux_coord[0], aux_coord[1]});
 				}
 			}
-		Debug.Log ("GenLinear Lp Solved");
+//		Debug.Log ("GenLinear Lp Solved");
 		
 		} else {
 			Debug.Log(result);
